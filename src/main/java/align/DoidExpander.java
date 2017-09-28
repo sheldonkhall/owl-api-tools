@@ -59,18 +59,19 @@ public class DoidExpander extends GeneralExpander {
 
     OWLOntologyManager newOntoMan =  OWLManager.createOWLOntologyManager();
     OWLOntology newOnto = newOntoMan.loadOntologyFromOntologyDocument(new File(newOntology));
+    this.newOnto = newOnto;
     targetOntoClassesToLabels = collectTargetOntoLabels(newOnto);
 
     exactMatcher.compareSetsOfClasses(targetOntoClassesToLabels, snomedClassesToMatchToLabels);
   }
 
   public static void main(String[] args) throws OWLOntologyCreationException, OWLOntologyStorageException {
-    String path = "/Users/giorgos.stoilos/Documents/Ontologies/";
-	String sourceOnto = "S3-Ontologies/doid/doid_2016-01-07.owl";
+    String path = "/Users/sheldon.hall/Google Drive/KB2.0/logmap/";
+	String sourceOnto = "doid_2016-01-07.owl";
 
     //Snomed Source
 //    String baseOntology = "/Users/giorgos.stoilos/Documents/Ontologies/SnomedCT_InternationalRF2_Production_20170131T120000/snomedct_owl.owl";
-    String baseOntology = "/Users/giorgos.stoilos/Documents/Ontologies/extSnomed.owl";
+    String baseOntology = "/Users/sheldon.hall/Projects/KB2.0/logmap2/snomedct_owl.owl";
 
     //When matching an ontology we can restrict to some parts of it. E.g., if we match the Symptom ontology we may only be interested to
     //compare to the part of SNOMED that corresponds to findings, or if we want to import a Gene ontology then only to the part of snomed that has Genes.
@@ -78,9 +79,10 @@ public class DoidExpander extends GeneralExpander {
 
     DoidExpander doidExpander = new DoidExpander(baseOntology,"http://beauty:18915/repositories/clinicalKnowledge");
     doidExpander.compareOntologiesFromFiles(path + sourceOnto, filterBySTY);
-//    doidExpander.printResult();
+    doidExpander.printResult();
 
-    doidExpander.expandSnomed();
+    doidExpander.computeCoOccurrenceOfSuperTypes();
+//    doidExpander.expandSnomed();
   }
 
   @Override

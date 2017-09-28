@@ -1,13 +1,13 @@
 package align;
 
+import com.google.common.collect.Sets;
 import org.semanticweb.owlapi.formats.OWLXMLDocumentFormat;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.search.EntitySearcher;
 
 import java.io.File;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**
@@ -120,16 +120,10 @@ public class SymptomOntoExpander extends GeneralExpander {
 
     SymptomOntoExpander sympExpander = new SymptomOntoExpander(baseOntology);
     sympExpander.compareOntologiesFromFiles(path + sourceOnto);
-//    sympExpander.printResult();
+    sympExpander.printResult();
 
+    sympExpander.computeCoOccurrenceOfSuperTypes();
 //    sympExpander.expandSnomed();
-
-    System.out.println("Number of matched Classes: " + sympExpander.exactMatcher.getNewOntoToSnomedMatches().keySet().size());
-    sympExpander.exactMatcher.getNewOntoToSnomedMatches().forEach((key, value) -> {
-      sympExpander.newOnto.getSubClassAxiomsForSubClass(key).forEach(owlSubClassOfAxiom -> {
-        System.out.println(owlSubClassOfAxiom.getSuperClass());
-      });
-    });
 
   }
 

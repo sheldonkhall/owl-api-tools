@@ -1,15 +1,13 @@
 package align;
 
+import com.google.common.collect.Sets;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.search.EntitySearcher;
 import org.semanticweb.owlapi.vocab.SKOSVocabulary;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -124,8 +122,69 @@ public abstract class GeneralExpander {
 
     System.out.println("Number of matched Classes: " + exactMatcher.getNewOntoToSnomedMatches().keySet().size());
     exactMatcher.getNewOntoToSnomedMatches().entrySet().forEach(e -> System.out.println(e.getKey().getIRI().getIRIString() + "\t" + targetOntoClassesToLabels.get(e.getKey()) + "\t" + e.getValue()));
+  }
 
-    System.exit(0);
+  protected void computeCoOccurrenceOfSuperTypes() {
+
+    // build the map from new onto superclasses to snomed superclasses
+    HashMap<OWLClass, List<OWLClass>> snomedToNewClassCounter = new HashMap<>();
+    System.out.println("Number of matched Classes: " + this.exactMatcher.getNewOntoToSnomedMatches().keySet().size());
+    this.exactMatcher.getNewOntoToSnomedMatches().forEach((key, value) -> {
+      this.newOnto.getSubClassAxiomsForSubClass(key).forEach(owlSubClassOfAxiom -> {
+        if (owlSubClassOfAxiom.getSuperClass().isOWLClass()) {
+          System.out.print("symp onto member = ");
+          System.out.println(owlSubClassOfAxiom.getSuperClass());
+          List<OWLClass> connectedClassList = snomedToNewClassCounter.getOrDefault(owlSubClassOfAxiom.getSuperClass().asOWLClass(), new ArrayList<>());
+          value.forEach(match -> {
+            this.snomedOntology.getSubClassAxiomsForSubClass(match).forEach(matchSubClassAxiom -> {
+              if (matchSubClassAxiom.getSuperClass().isOWLClass()) {
+                System.out.print("snomed onto member = ");
+                System.out.println(matchSubClassAxiom.getSuperClass());
+                connectedClassList.add(matchSubClassAxiom.getSuperClass().asOWLClass());
+              }
+            });
+          });
+          snomedToNewClassCounter.put(owlSubClassOfAxiom.getSuperClass().asOWLClass(), connectedClassList);
+        }
+      });
+    });
+
+    System.out.println("Output class co-occurrence");
+    snomedToNewClassCounter.forEach((key,value)->{
+      System.out.print(key);
+      System.out.print(" maps to ");
+      System.out.println(value);
+    });
+
+    // build the co-occurence matrix
+    int nRows = snomedToNewClassCounter.keySet().size();
+    int nCols = snomedToNewClassCounter.values().stream().
+            map(list-> Sets.newHashSet(list)).
+            reduce(new HashSet(),(element, identity) -> {
+              element.addAll(identity);
+              return element;
+            }).size();
+    int[][] matrix = new int[nRows][nCols];
+    // fill matrix
+    List<OWLClass> rowMap = new ArrayList<>();
+    List<OWLClass> colMap = new ArrayList<>();
+    snomedToNewClassCounter.forEach((key,value)->{
+      if (!rowMap.contains(key)) {rowMap.add(key);}
+      value.forEach(snoMedClass->{
+        if (!colMap.contains(snoMedClass)) {colMap.add(snoMedClass);}
+        ++matrix[rowMap.indexOf(key)][colMap.indexOf(snoMedClass)];
+      });
+    });
+
+    for (int i=0;i<nRows;i++) {
+      for (int j=0;j<nCols;j++) {
+        if (matrix[i][j] > 1) {
+          System.out.print(rowMap.get(i).toString()+" + ");
+          System.out.print(colMap.get(j).toString()+" with evidence = ");
+          System.out.println(matrix[i][j]);
+        }
+      }
+    }
   }
 
 }
