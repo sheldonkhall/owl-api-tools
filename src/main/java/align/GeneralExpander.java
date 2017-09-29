@@ -131,18 +131,22 @@ public abstract class GeneralExpander {
     System.out.println("Number of matched Classes: " + this.exactMatcher.getNewOntoToSnomedMatches().keySet().size());
     this.exactMatcher.getNewOntoToSnomedMatches().forEach((key, value) -> {
       this.newOnto.getSubClassAxiomsForSubClass(key).forEach(owlSubClassOfAxiom -> {
-        if (owlSubClassOfAxiom.getSuperClass().isOWLClass()) {
+        if (!owlSubClassOfAxiom.getSuperClass().isAnonymous()) {
           System.out.print("symp onto member = ");
           System.out.println(owlSubClassOfAxiom.getSuperClass());
           List<OWLClass> connectedClassList = snomedToNewClassCounter.getOrDefault(owlSubClassOfAxiom.getSuperClass().asOWLClass(), new ArrayList<>());
           value.forEach(match -> {
+            System.out.print("snomed concept "+match.toString()+" has these superclasses: ");
             this.snomedOntology.getSubClassAxiomsForSubClass(match).forEach(matchSubClassAxiom -> {
-              if (matchSubClassAxiom.getSuperClass().isOWLClass()) {
-                System.out.print("snomed onto member = ");
-                System.out.println(matchSubClassAxiom.getSuperClass());
-                connectedClassList.add(matchSubClassAxiom.getSuperClass().asOWLClass());
-              }
+              matchSubClassAxiom.getSuperClass().nestedClassExpressions().forEach(System.out::print);
+              // deal with one level of nesting - reasoner is probably the correct way to do this
+              matchSubClassAxiom.getSuperClass().nestedClassExpressions().forEach(nestedMatch -> {
+                if (!nestedMatch.isAnonymous()) {
+                  connectedClassList.add(nestedMatch.asOWLClass());
+                }
+              });
             });
+            System.out.println(" end.");
           });
           snomedToNewClassCounter.put(owlSubClassOfAxiom.getSuperClass().asOWLClass(), connectedClassList);
         }
